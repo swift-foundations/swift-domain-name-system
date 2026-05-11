@@ -5,3 +5,5 @@ topics:
   - foundations
   - domain
 homepage: "https://swift-institute.org"
+readme:
+  family: F
