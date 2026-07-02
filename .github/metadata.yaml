@@ -1,6 +1,6 @@
 # .github/metadata.yaml
 # Triaged by AI-assisted bulk pass (2026-04-29).
-description: "Domain name system for Swift."
+description: "DNS protocol record and message types for Swift."
 topics:
   - foundations
   - domain
