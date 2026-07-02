@@ -1,6 +1,6 @@
 # .github/metadata.yaml
 # Triaged by AI-assisted bulk pass (2026-04-29).
-description: "DNS protocol record and message types for Swift."
+description: "Namespace reserved for DNS protocol record and message types in Swift."
 topics:
   - foundations
   - domain
