@@ -1,9 +1,9 @@
 # .github/metadata.yaml
-# Triaged by AI-assisted bulk pass (2026-04-29).
-description: "Namespace reserved for DNS protocol record and message types in Swift."
+description: "Provider-neutral DNS resolver capability for Swift."
 topics:
   - foundations
   - domain
+  - dns
 homepage: "https://swift-institute.org"
 readme:
-  family: F
+  family: E
