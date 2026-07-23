@@ -14,7 +14,7 @@ extension DNS {
     ///
     /// Providers conform to ``Protocol-swift.protocol`` (aliased as
     /// `DNS.Resolving`). The system resolver lives in the separate
-    /// `Domain Name System ISO 9945` integration; test doubles and future
+    /// `Domain Name System Kernel` integration; test doubles and future
     /// wire resolvers plug in through the same seam.
     public enum Resolver: Sendable {}
 }
