@@ -73,7 +73,7 @@ extension DNS.Resolver.Cache {
         }
 
         do throws(Cache_Primitives.Cache<DNS.Query, Entry>.Error) {
-            let entry = try await cache.value(for: query) { () async throws(Error) -> Entry in
+            let entry = try await cache.value(for: query) {
                 do throws(Failure) {
                     let response = try await resolve(query)
                     return Entry(response: response, expires: Self.expires(response, at: now()))

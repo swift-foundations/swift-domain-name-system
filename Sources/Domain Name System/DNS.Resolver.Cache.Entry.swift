@@ -8,7 +8,7 @@
 // ===----------------------------------------------------------------------===//
 
 extension DNS.Resolver.Cache {
-    struct Entry: Sendable {
+    package struct Entry: Sendable {
         let response: DNS.Response
         let expires: ContinuousClock.Instant?
 
