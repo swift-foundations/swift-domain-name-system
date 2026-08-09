@@ -20,7 +20,7 @@ extension DNS.Resolver {
     public struct Cache<Failure: Swift.Error>: Sendable {
         private let resolve: @Sendable (DNS.Query) async throws(Failure) -> DNS.Response
         private let cache: Cache_Primitives.Cache<DNS.Query, Entry>
-        private let clock: ContinuousClock
+        private let now: @Sendable () -> ContinuousClock.Instant
 
         /// Creates an empty resolver cache.
         ///
@@ -29,9 +29,16 @@ extension DNS.Resolver {
         public init(
             resolve: @escaping @Sendable (DNS.Query) async throws(Failure) -> DNS.Response
         ) {
+            self.init(resolve: resolve, now: { ContinuousClock().now })
+        }
+
+        init(
+            resolve: @escaping @Sendable (DNS.Query) async throws(Failure) -> DNS.Response,
+            now: @escaping @Sendable () -> ContinuousClock.Instant
+        ) {
             self.resolve = resolve
             self.cache = Cache_Primitives.Cache()
-            self.clock = ContinuousClock()
+            self.now = now
         }
 
         /// Adapts an address-only resolver without manufacturing a lifetime.
@@ -61,22 +68,24 @@ extension DNS.Resolver.Cache: DNS.Resolving {
 extension DNS.Resolver.Cache {
     /// Resolves one query, retaining the response only while its lifetime is valid.
     public func response(for query: DNS.Query) async throws(Error) -> DNS.Response {
-        if let entry = cache.cachedValue(for: query) {
-            if entry.isValid(at: clock.now) {
-                return entry.response
-            }
-            cache.removeValue(for: query)
+        cache.removeValue(for: query) { entry in
+            !entry.isValid(at: now())
         }
 
         do throws(Cache_Primitives.Cache<DNS.Query, Entry>.Error) {
             let entry = try await cache.value(for: query) { () async throws(Error) -> Entry in
                 do throws(Failure) {
                     let response = try await resolve(query)
-                    return Entry(response: response, expires: Self.expires(response, at: clock.now))
+                    return Entry(response: response, expires: Self.expires(response, at: now()))
                 } catch {
                     throw Error.resolver(error)
                 }
             }
+
+            cache.removeValue(for: query) { entry in
+                entry.expires == nil
+            }
+
             return entry.response
         } catch {
             switch error {
@@ -96,6 +105,13 @@ extension DNS.Resolver.Cache {
 // MARK: - Expiry
 
 extension DNS.Resolver.Cache {
+    #if DEBUG
+        /// Whether no ready or in-flight entry is retained.
+        var isEmpty: Bool {
+            cache.isEmpty
+        }
+    #endif
+
     private static func expires(
         _ response: DNS.Response,
         at now: ContinuousClock.Instant

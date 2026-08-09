@@ -8,6 +8,7 @@
 // ===----------------------------------------------------------------------===//
 
 import Testing
+import Synchronization
 
 @testable import Domain_Name_System
 
@@ -25,21 +26,56 @@ private enum `DNS Resolver Cache Tests Failure`: Swift.Error, Equatable {
 private actor `DNS Resolver Cache Tests Provider` {
     private var responses: [DNS.Response]
     private var requests = 0
+    private let blocked: Int?
+    private let started: Async.Gate?
+    private let release: Async.Gate?
 
-    init(responses: [DNS.Response]) {
+    init(
+        responses: [DNS.Response],
+        blocked: Int? = nil,
+        started: Async.Gate? = nil,
+        release: Async.Gate? = nil
+    ) {
         self.responses = responses
+        self.blocked = blocked
+        self.started = started
+        self.release = release
     }
 }
 
 extension `DNS Resolver Cache Tests Provider` {
-    func response(for query: DNS.Query) throws(`DNS Resolver Cache Tests Failure`) -> DNS.Response {
+    func response(for query: DNS.Query) async throws(`DNS Resolver Cache Tests Failure`) -> DNS.Response {
         _ = query
         requests += 1
         guard !responses.isEmpty else { throw .unreachable }
+        if requests == blocked {
+            _ = started?.open()
+            if let release {
+                await release.wait()
+            }
+        }
         return responses.removeFirst()
     }
 
     var count: Int { requests }
+}
+
+private final class `DNS Resolver Cache Tests Clock`: Sendable {
+    private let storage: Mutex<ContinuousClock.Instant>
+
+    init(_ now: ContinuousClock.Instant) {
+        self.storage = Mutex(now)
+    }
+}
+
+extension `DNS Resolver Cache Tests Clock` {
+    func move(to now: ContinuousClock.Instant) {
+        storage.withLock { $0 = now }
+    }
+
+    var now: ContinuousClock.Instant {
+        storage.withLock { $0 }
+    }
 }
 
 extension `DNS Resolver Cache Tests`.Unit {
@@ -57,12 +93,16 @@ extension `DNS Resolver Cache Tests`.Unit {
         )
         let query = DNS.Query(name: try RFC_1035.Domain("example.com"))
 
-        let first = try await cache.response(for: query)
-        let second = try await cache.response(for: query)
+        do throws(DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>.Error) {
+            let first = try await cache.response(for: query)
+            let second = try await cache.response(for: query)
 
-        #expect(first == response)
-        #expect(second == response)
-        #expect(await provider.count == 1)
+            #expect(first == response)
+            #expect(second == response)
+            #expect(await provider.count == 1)
+        } catch {
+            Issue.record("Unexpected cache error: \(error)")
+        }
     }
 
     @Test
@@ -77,9 +117,14 @@ extension `DNS Resolver Cache Tests`.Unit {
         )
         let query = DNS.Query(name: try RFC_1035.Domain("example.com"))
 
-        #expect(try await cache.response(for: query) == first)
-        #expect(try await cache.response(for: query) == second)
-        #expect(await provider.count == 2)
+        do throws(DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>.Error) {
+            #expect(try await cache.response(for: query) == first)
+            #expect(cache.isEmpty)
+            #expect(try await cache.response(for: query) == second)
+            #expect(await provider.count == 2)
+        } catch {
+            Issue.record("Unexpected cache error: \(error)")
+        }
     }
 }
 
@@ -102,9 +147,14 @@ extension `DNS Resolver Cache Tests`.`Edge Case` {
         )
         let query = DNS.Query(name: try RFC_1035.Domain("example.com"))
 
-        #expect(try await cache.resolve(query) == first.addresses)
-        #expect(try await cache.resolve(query) == second.addresses)
-        #expect(await provider.count == 2)
+        do throws(DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>.Error) {
+            #expect(try await cache.resolve(query) == first.addresses)
+            #expect(cache.isEmpty)
+            #expect(try await cache.resolve(query) == second.addresses)
+            #expect(await provider.count == 2)
+        } catch {
+            Issue.record("Unexpected cache error: \(error)")
+        }
     }
 
     @Test
@@ -129,5 +179,99 @@ extension `DNS Resolver Cache Tests`.`Edge Case` {
             }
         }
         #expect(await provider.count == 2)
+        #expect(cache.isEmpty)
+    }
+}
+
+extension `DNS Resolver Cache Tests`.`Edge Case` {
+    @Test
+    func `expired readers join the replacement computation`() async throws(RFC_1035.Domain.Error) {
+        let first = DNS.Response(
+            addresses: [.v4(IPv4.Address(rawValue: 0x7F00_0001))],
+            ttl: .seconds(60)
+        )
+        let second = DNS.Response(
+            addresses: [.v4(IPv4.Address(rawValue: 0x7F00_0002))],
+            ttl: .seconds(60)
+        )
+        let origin = ContinuousClock().now
+        let clock = `DNS Resolver Cache Tests Clock`(origin)
+        let started = Async.Gate()
+        let release = Async.Gate()
+        let provider = `DNS Resolver Cache Tests Provider`(
+            responses: [first, second],
+            blocked: 2,
+            started: started,
+            release: release
+        )
+        let cache = DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>(
+            resolve: { (query: DNS.Query) async throws(`DNS Resolver Cache Tests Failure`) -> DNS.Response in
+                try await provider.response(for: query)
+            },
+            now: { clock.now }
+        )
+        let query = DNS.Query(name: try RFC_1035.Domain("example.com"))
+
+        do throws(DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>.Error) {
+            #expect(try await cache.response(for: query) == first)
+            clock.move(to: origin.advanced(by: .seconds(60)))
+
+            let producer = Task { () async throws(DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>.Error) -> DNS.Response in
+                try await cache.response(for: query)
+            }
+            await started.wait()
+
+            let waiter = Task { () async throws(DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>.Error) -> DNS.Response in
+                try await cache.response(for: query)
+            }
+            _ = release.open()
+
+            #expect(try await producer.value == second)
+            #expect(try await waiter.value == second)
+            #expect(await provider.count == 2)
+        } catch {
+            Issue.record("Unexpected cache error: \(error)")
+        }
+    }
+
+    @Test
+    func `unavailable lifetime reaches current waiters without retention`() async throws(RFC_1035.Domain.Error) {
+        let first = DNS.Response(addresses: [.v4(IPv4.Address(rawValue: 0x7F00_0001))])
+        let second = DNS.Response(addresses: [.v4(IPv4.Address(rawValue: 0x7F00_0002))])
+        let started = Async.Gate()
+        let release = Async.Gate()
+        let provider = `DNS Resolver Cache Tests Provider`(
+            responses: [first, second],
+            blocked: 1,
+            started: started,
+            release: release
+        )
+        let cache = DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>(
+            resolve: { (query: DNS.Query) async throws(`DNS Resolver Cache Tests Failure`) -> DNS.Response in
+                try await provider.response(for: query)
+            }
+        )
+        let query = DNS.Query(name: try RFC_1035.Domain("example.com"))
+
+        do throws(DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>.Error) {
+            let producer = Task { () async throws(DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>.Error) -> DNS.Response in
+                try await cache.response(for: query)
+            }
+            await started.wait()
+
+            let waiter = Task { () async throws(DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>.Error) -> DNS.Response in
+                try await cache.response(for: query)
+            }
+            _ = release.open()
+
+            #expect(try await producer.value == first)
+            #expect(try await waiter.value == first)
+            #expect(await provider.count == 1)
+            #expect(cache.isEmpty)
+            #expect(try await cache.response(for: query) == second)
+            #expect(await provider.count == 2)
+        } catch {
+            Issue.record("Unexpected cache error: \(error)")
+        }
     }
 }
