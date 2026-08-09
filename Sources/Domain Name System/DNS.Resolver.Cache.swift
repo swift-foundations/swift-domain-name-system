@@ -58,7 +58,9 @@ extension DNS.Resolver {
 
 extension DNS.Resolver.Cache: DNS.Resolving {
     /// Resolves one query through the cache.
-    public func resolve(_ query: DNS.Query) async throws(Error) -> [IP.Address] {
+    public func resolve(
+        _ query: DNS.Query
+    ) async throws(DNS.Resolver.Cache<Failure>.Error) -> [IP.Address] {
         try await response(for: query).addresses
     }
 }
@@ -67,18 +69,21 @@ extension DNS.Resolver.Cache: DNS.Resolving {
 
 extension DNS.Resolver.Cache {
     /// Resolves one query, retaining the response only while its lifetime is valid.
-    public func response(for query: DNS.Query) async throws(Error) -> DNS.Response {
+    public func response(
+        for query: DNS.Query
+    ) async throws(DNS.Resolver.Cache<Failure>.Error) -> DNS.Response {
         cache.removeValue(for: query) { entry in
             !entry.isValid(at: now())
         }
 
         do throws(Cache_Primitives.Cache<DNS.Query, Entry>.Error) {
-            let entry = try await cache.value(for: query) { () async throws(Failure) -> Entry in
+            let entry = try await cache.value(for: query) {
+                () async throws(DNS.Resolver.Cache<Failure>.Error) -> Entry in
                 do throws(Failure) {
                     let response = try await resolve(query)
                     return Entry(response: response, expires: Self.expires(response, at: now()))
                 } catch {
-                    throw Error.resolver(error)
+                    throw DNS.Resolver.Cache<Failure>.Error.resolver(error)
                 }
             }
 
@@ -93,7 +98,7 @@ extension DNS.Resolver.Cache {
                 throw .cancelled
 
             case .computeFailed(let error):
-                if let error = error as? Error {
+                if let error = error as? DNS.Resolver.Cache<Failure>.Error {
                     throw error
                 }
                 throw .cache

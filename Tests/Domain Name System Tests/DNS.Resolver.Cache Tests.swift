@@ -7,11 +7,11 @@
 //
 // ===----------------------------------------------------------------------===//
 
-import Testing
 import Synchronization
+import Testing
 
-@testable import Domain_Name_System
 @testable import Cache_Primitives
+@testable import Domain_Name_System
 
 @Suite
 struct `DNS Resolver Cache Tests` {
