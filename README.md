@@ -24,6 +24,12 @@ let addresses: [IP.Address] = try await resolver.resolve(query)
 // no connection racing, no invented TTL.
 ```
 
+When a DNS transport reports an authority-provided lifetime, wrap its response
+operation in `DNS.Resolver.Cache`. The cache coalesces matching in-flight
+queries and retains a response only until that lifetime expires. The system
+resolver exposes no TTL, so its adapter never turns a platform result into a
+persisted entry.
+
 Conforming a provider is one requirement with a typed failure:
 
 ```swift

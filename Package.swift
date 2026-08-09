@@ -20,6 +20,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/swift-ietf/swift-rfc-1035.git", branch: "main"),
         .package(url: "https://github.com/swift-foundations/swift-ip-address.git", branch: "main"),
+        .package(url: "https://github.com/swift-primitives/swift-cache-primitives.git", branch: "main"),
     ],
     targets: [
         .target(
@@ -27,12 +28,13 @@ let package = Package(
             dependencies: [
                 .product(name: "RFC 1035", package: "swift-rfc-1035"),
                 .product(name: "IP Address", package: "swift-ip-address"),
+                .product(name: "Cache Primitives", package: "swift-cache-primitives"),
             ]
         ),
         .testTarget(
             name: "Domain Name System Tests",
             dependencies: [
-                "Domain Name System",
+                .target(name: "Domain Name System"),
             ]
         ),
     ],

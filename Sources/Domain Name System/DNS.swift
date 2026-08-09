@@ -13,7 +13,7 @@
 ///
 /// This namespace owns the provider-neutral resolver seam: a typed,
 /// cancellable question (``Query``) answered with ordered canonical
-/// `IP.Address` values by an injected provider (``Resolver``). Wire records,
-/// message encoding, and cache law live elsewhere — records with RFC 1035,
-/// caching with a future dedicated owner.
+/// `IP.Address` values (``Response``) by an injected provider (``Resolver``).
+/// Wire records and message encoding remain with RFC 1035; this package owns
+/// the result and cache law built on those records' advertised lifetimes.
 public enum DNS: Sendable {}
