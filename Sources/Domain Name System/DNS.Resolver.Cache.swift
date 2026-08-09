@@ -19,7 +19,7 @@ extension DNS.Resolver {
     /// requesters but are never retained for a later request.
     public struct Cache<Failure: Swift.Error>: Sendable {
         private let resolve: @Sendable (DNS.Query) async throws(Failure) -> DNS.Response
-        private let cache: Cache_Primitives.Cache<DNS.Query, Entry>
+        package let cache: Cache_Primitives.Cache<DNS.Query, Entry>
         private let now: @Sendable () -> ContinuousClock.Instant
 
         /// Creates an empty resolver cache.

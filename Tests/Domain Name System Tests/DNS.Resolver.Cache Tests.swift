@@ -11,6 +11,7 @@ import Testing
 import Synchronization
 
 @testable import Domain_Name_System
+@testable import Cache_Primitives
 
 @Suite
 struct `DNS Resolver Cache Tests` {
@@ -198,6 +199,7 @@ extension `DNS Resolver Cache Tests`.`Edge Case` {
         let clock = `DNS Resolver Cache Tests Clock`(origin)
         let started = Async.Gate()
         let release = Async.Gate()
+        let waiterEnqueued = Async.Gate()
         let provider = `DNS Resolver Cache Tests Provider`(
             responses: [first, second],
             blocked: 2,
@@ -221,9 +223,13 @@ extension `DNS Resolver Cache Tests`.`Edge Case` {
             }
             await started.wait()
 
+            cache.cache._storage.testing.waiterEnqueued.withLock { acknowledgement in
+                acknowledgement = { _ = waiterEnqueued.open() }
+            }
             let waiter = Task { () async throws(DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>.Error) -> DNS.Response in
                 try await cache.response(for: query)
             }
+            await waiterEnqueued.wait()
             _ = release.open()
 
             #expect(try await producer.value == second)
@@ -240,6 +246,7 @@ extension `DNS Resolver Cache Tests`.`Edge Case` {
         let second = DNS.Response(addresses: [.v4(IPv4.Address(rawValue: 0x7F00_0002))])
         let started = Async.Gate()
         let release = Async.Gate()
+        let waiterEnqueued = Async.Gate()
         let provider = `DNS Resolver Cache Tests Provider`(
             responses: [first, second],
             blocked: 1,
@@ -259,9 +266,13 @@ extension `DNS Resolver Cache Tests`.`Edge Case` {
             }
             await started.wait()
 
+            cache.cache._storage.testing.waiterEnqueued.withLock { acknowledgement in
+                acknowledgement = { _ = waiterEnqueued.open() }
+            }
             let waiter = Task { () async throws(DNS.Resolver.Cache<`DNS Resolver Cache Tests Failure`>.Error) -> DNS.Response in
                 try await cache.response(for: query)
             }
+            await waiterEnqueued.wait()
             _ = release.open()
 
             #expect(try await producer.value == first)
