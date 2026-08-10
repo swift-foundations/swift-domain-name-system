@@ -73,12 +73,21 @@ extension DNS.Resolver.Cache {
         }
 
         do throws(Cache_Primitives.Cache<DNS.Query, Entry>.Error) {
-            let entry = try await cache.value(for: query) { () async throws(Failure) -> Entry in
+            let entry = try await cache.value(for: query) {
+                let result: Result<Entry, DNS.Resolver.Cache<Failure>.Error>
                 do throws(Failure) {
                     let response = try await resolve(query)
-                    return Entry(response: response, expires: Self.expires(response, at: now()))
+                    result = .success(Entry(response: response, expires: Self.expires(response, at: now())))
                 } catch {
-                    throw Error.resolver(error)
+                    result = .failure(.resolver(error))
+                }
+
+                switch result {
+                case .success(let entry):
+                    return entry
+
+                case .failure(let error):
+                    throw error
                 }
             }
 
@@ -93,7 +102,7 @@ extension DNS.Resolver.Cache {
                 throw .cancelled
 
             case .computeFailed(let error):
-                if let error = error as? Error {
+                if let error = error as? DNS.Resolver.Cache<Failure>.Error {
                     throw error
                 }
                 throw .cache
