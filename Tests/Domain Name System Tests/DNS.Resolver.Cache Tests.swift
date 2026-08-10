@@ -232,8 +232,14 @@ extension `DNS Resolver Cache Tests`.`Edge Case` {
             await waiterEnqueued.wait()
             _ = release.open()
 
-            #expect(try await producer.value == second)
-            #expect(try await waiter.value == second)
+            switch await producer.result {
+            case .success(let produced): #expect(produced == second)
+            case .failure(let error): Issue.record("Unexpected producer error: \(error)")
+            }
+            switch await waiter.result {
+            case .success(let awaited): #expect(awaited == second)
+            case .failure(let error): Issue.record("Unexpected waiter error: \(error)")
+            }
             #expect(await provider.count == 2)
         } catch {
             Issue.record("Unexpected cache error: \(error)")
@@ -275,8 +281,14 @@ extension `DNS Resolver Cache Tests`.`Edge Case` {
             await waiterEnqueued.wait()
             _ = release.open()
 
-            #expect(try await producer.value == first)
-            #expect(try await waiter.value == first)
+            switch await producer.result {
+            case .success(let produced): #expect(produced == first)
+            case .failure(let error): Issue.record("Unexpected producer error: \(error)")
+            }
+            switch await waiter.result {
+            case .success(let awaited): #expect(awaited == first)
+            case .failure(let error): Issue.record("Unexpected waiter error: \(error)")
+            }
             #expect(await provider.count == 1)
             #expect(cache.isEmpty)
             #expect(try await cache.response(for: query) == second)
