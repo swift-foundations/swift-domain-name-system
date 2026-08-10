@@ -184,6 +184,10 @@ extension `DNS Resolver Cache Tests`.`Edge Case` {
     }
 }
 
+// The deterministic waiter-registration hook these tests synchronize on is
+// declared `#if DEBUG` by its owner, so the suite compiles in debug only.
+#if DEBUG
+
 extension `DNS Resolver Cache Tests`.`Edge Case` {
     @Test
     func `expired readers join the replacement computation`() async throws(RFC_1035.Domain.Error) {
@@ -298,3 +302,5 @@ extension `DNS Resolver Cache Tests`.`Edge Case` {
         }
     }
 }
+
+#endif

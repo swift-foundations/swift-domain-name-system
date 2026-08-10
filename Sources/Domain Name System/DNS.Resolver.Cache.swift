@@ -110,12 +110,10 @@ extension DNS.Resolver.Cache {
 // MARK: - Expiry
 
 extension DNS.Resolver.Cache {
-    #if DEBUG
-        /// Whether no ready or in-flight entry is retained.
-        var isEmpty: Bool {
-            cache.isEmpty
-        }
-    #endif
+    /// Whether no ready or in-flight entry is retained.
+    package var isEmpty: Bool {
+        cache.isEmpty
+    }
 
     private static func expires(
         _ response: DNS.Response,
