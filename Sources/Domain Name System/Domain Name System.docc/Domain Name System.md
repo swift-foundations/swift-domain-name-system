@@ -22,7 +22,10 @@ valid.
 
 Wire records and message encoding belong to RFC 1035. The system provider —
 `getaddrinfo` over a bounded worker pool — lives in the separate
-`Domain Name System ISO 9945` integration package.
+`Domain Name System Kernel` integration package. That product conforms to this
+package's resolver seam, translates the query's family and timeout to the
+typed kernel surface, preserves system order, and supplies no TTL; the core
+package therefore imports no OS platform API.
 
 ## Topics
 
