@@ -15,8 +15,5 @@ extension DNS.Resolver.Cache {
 
         /// A waiting request was cancelled before publication.
         case cancelled
-
-        /// The cache observed an internal outcome outside its public contract.
-        case cache
     }
 }

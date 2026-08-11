@@ -26,7 +26,7 @@ let package = Package(
         .package(url: "https://github.com/swift-foundations/swift-ip-address.git", branch: "main"),
         .package(
             url: "https://github.com/swift-primitives/swift-cache-primitives.git",
-            revision: "ad1b4b78a4718dd6f55e31ec505b8da1ac036949"
+            branch: "main"
         ),
     ],
     targets: [
