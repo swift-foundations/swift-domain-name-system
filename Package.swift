@@ -15,6 +15,10 @@ let package = Package(
         .library(
             name: "Domain Name System",
             targets: ["Domain Name System"]
+        ),
+        .library(
+            name: "Domain Name System Cache",
+            targets: ["Domain Name System Cache"]
         )
     ],
     dependencies: [
@@ -31,6 +35,12 @@ let package = Package(
             dependencies: [
                 .product(name: "RFC 1035", package: "swift-rfc-1035"),
                 .product(name: "IP Address", package: "swift-ip-address"),
+            ]
+        ),
+        .target(
+            name: "Domain Name System Cache",
+            dependencies: [
+                .target(name: "Domain Name System"),
                 .product(name: "Cache Primitives", package: "swift-cache-primitives"),
             ]
         ),
@@ -38,7 +48,19 @@ let package = Package(
             name: "Domain Name System Tests",
             dependencies: [
                 .target(name: "Domain Name System"),
+            ]
+        ),
+        .testTarget(
+            name: "Domain Name System Cache Tests",
+            dependencies: [
+                .target(name: "Domain Name System Cache"),
                 .product(name: "Cache Primitives", package: "swift-cache-primitives"),
+            ]
+        ),
+        .testTarget(
+            name: "Domain Name System Dependency Tests",
+            dependencies: [
+                .target(name: "Domain Name System"),
             ]
         ),
     ],

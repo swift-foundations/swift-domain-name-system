@@ -16,9 +16,8 @@ the resolution with a monotonic budget. A provider conforming to
 ``DNS/Resolver/Protocol-swift.protocol`` (`DNS.Resolving`) answers with
 canonical RFC 791/4291 addresses in the provider's own order — no family
 racing and no invented time-to-live. ``DNS/Response`` carries a
-provider-supplied lifetime when one exists; ``DNS/Resolver/Cache`` coalesces
-identical in-flight queries and retains only responses whose lifetime remains
-valid.
+provider-supplied lifetime when one exists. The additive `Domain Name System
+Cache` product interprets that lifetime for caching and request coalescing.
 
 Wire records and message encoding belong to RFC 1035. The system provider —
 `getaddrinfo` over a bounded worker pool — lives in the separate
@@ -37,5 +36,4 @@ package therefore imports no OS platform API.
 ### Providers
 
 - ``DNS/Resolver``
-- ``DNS/Resolver/Cache``
 - ``DNS/Resolving``

@@ -11,7 +11,7 @@ import Synchronization
 import Testing
 
 @testable import Cache_Primitives
-@testable import Domain_Name_System
+@testable import Domain_Name_System_Cache
 
 @Suite
 struct `DNS Resolver Cache Tests` {

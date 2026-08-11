@@ -25,10 +25,14 @@ let addresses: [IP.Address] = try await resolver.resolve(query)
 ```
 
 When a DNS transport reports an authority-provided lifetime, wrap its response
-operation in `DNS.Resolver.Cache`. The cache coalesces matching in-flight
-queries and retains a response only until that lifetime expires. The system
-resolver exposes no TTL, so its adapter never turns a platform result into a
-persisted entry.
+operation in `DNS.Resolver.Cache` from the additive `Domain Name System Cache`
+product. The cache coalesces matching in-flight queries and retains a response
+only until that lifetime expires. The system resolver exposes no TTL, so its
+adapter never turns a platform result into a persisted entry.
+
+```swift
+import Domain_Name_System_Cache
+```
 
 ## System Resolver Closure
 
@@ -70,6 +74,17 @@ dependencies: [
     ]
 )
 ```
+
+Add the cache product only to targets that cache or coalesce resolver responses:
+
+```swift
+.product(
+    name: "Domain Name System Cache",
+    package: "swift-domain-name-system"
+)
+```
+
+The base product has no compile-time dependency on Cache Primitives.
 
 ## Related Packages
 

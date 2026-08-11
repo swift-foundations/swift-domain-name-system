@@ -15,5 +15,5 @@
 /// cancellable question (``Query``) answered with ordered canonical
 /// `IP.Address` values (``Response``) by an injected provider (``Resolver``).
 /// Wire records and message encoding remain with RFC 1035; this package owns
-/// the result and cache law built on those records' advertised lifetimes.
+/// the provider-neutral result, including any authority-advertised lifetime.
 public enum DNS: Sendable {}

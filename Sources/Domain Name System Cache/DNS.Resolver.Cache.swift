@@ -7,7 +7,8 @@
 //
 // ===----------------------------------------------------------------------===//
 
-public import Cache_Primitives
+package import Cache_Primitives
+public import Domain_Name_System
 
 extension DNS.Resolver {
     /// A response cache with request coalescing and authority-bound expiry.
