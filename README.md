@@ -24,6 +24,30 @@ let addresses: [IP.Address] = try await resolver.resolve(query)
 // no connection racing, no invented TTL.
 ```
 
+When a DNS transport reports an authority-provided lifetime, wrap its response
+operation in `DNS.Resolver.Cache` from the additive `Domain Name System Cache`
+product. The cache coalesces matching in-flight queries and retains a response
+only until that lifetime expires. The system resolver exposes no TTL, so its
+adapter never turns a platform result into a persisted entry.
+
+```swift
+import Domain_Name_System_Cache
+```
+
+## System Resolver Closure
+
+The real OS adapter is deliberately a separate product:
+[`Domain Name System Kernel`](https://github.com/swift-foundations/swift-domain-name-system-kernel).
+Its `DNS.Resolver.System` conforms to this package's resolver seam and maps a
+`DNS.Query` onto the typed kernel `getaddrinfo` surface. It preserves the
+system resolver's order, applies the query's family preference and monotonic
+budget, and reports no TTL. Blocking resolution is admitted to an externally
+owned bounded worker pool: cancellation and timeout abandon delivery promptly,
+while the admitted worker remains responsible for the OS result's lifetime.
+
+Import that product only where a process needs OS resolution; ordinary
+resolver consumers depend on this provider-neutral package alone.
+
 Conforming a provider is one requirement with a typed failure:
 
 ```swift
@@ -50,6 +74,17 @@ dependencies: [
     ]
 )
 ```
+
+Add the cache product only to targets that cache or coalesce resolver responses:
+
+```swift
+.product(
+    name: "Domain Name System Cache",
+    package: "swift-domain-name-system"
+)
+```
+
+The base product has no compile-time dependency on Cache Primitives.
 
 ## Related Packages
 

@@ -15,11 +15,19 @@ let package = Package(
         .library(
             name: "Domain Name System",
             targets: ["Domain Name System"]
+        ),
+        .library(
+            name: "Domain Name System Cache",
+            targets: ["Domain Name System Cache"]
         )
     ],
     dependencies: [
         .package(url: "https://github.com/swift-ietf/swift-rfc-1035.git", branch: "main"),
         .package(url: "https://github.com/swift-foundations/swift-ip-address.git", branch: "main"),
+        .package(
+            url: "https://github.com/swift-primitives/swift-cache-primitives.git",
+            revision: "ad1b4b78a4718dd6f55e31ec505b8da1ac036949"
+        ),
     ],
     targets: [
         .target(
@@ -29,10 +37,30 @@ let package = Package(
                 .product(name: "IP Address", package: "swift-ip-address"),
             ]
         ),
+        .target(
+            name: "Domain Name System Cache",
+            dependencies: [
+                .target(name: "Domain Name System"),
+                .product(name: "Cache Primitives", package: "swift-cache-primitives"),
+            ]
+        ),
         .testTarget(
             name: "Domain Name System Tests",
             dependencies: [
-                "Domain Name System",
+                .target(name: "Domain Name System"),
+            ]
+        ),
+        .testTarget(
+            name: "Domain Name System Cache Tests",
+            dependencies: [
+                .target(name: "Domain Name System Cache"),
+                .product(name: "Cache Primitives", package: "swift-cache-primitives"),
+            ]
+        ),
+        .testTarget(
+            name: "Domain Name System Dependency Tests",
+            dependencies: [
+                .target(name: "Domain Name System"),
             ]
         ),
     ],

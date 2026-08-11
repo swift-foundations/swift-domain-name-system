@@ -15,17 +15,23 @@ RFC 1035 domain, states an address-family preference, and optionally bounds
 the resolution with a monotonic budget. A provider conforming to
 ``DNS/Resolver/Protocol-swift.protocol`` (`DNS.Resolving`) answers with
 canonical RFC 791/4291 addresses in the provider's own order — no family
-racing, no invented time-to-live, no cache.
+racing and no invented time-to-live. ``DNS/Response`` carries a
+provider-supplied lifetime when one exists. The additive `Domain Name System
+Cache` product interprets that lifetime for caching and request coalescing.
 
 Wire records and message encoding belong to RFC 1035. The system provider —
 `getaddrinfo` over a bounded worker pool — lives in the separate
-`Domain Name System ISO 9945` integration package.
+`Domain Name System Kernel` integration package. That product conforms to this
+package's resolver seam, translates the query's family and timeout to the
+typed kernel surface, preserves system order, and supplies no TTL; the core
+package therefore imports no OS platform API.
 
 ## Topics
 
 ### Questions
 
 - ``DNS/Query``
+- ``DNS/Response``
 
 ### Providers
 
