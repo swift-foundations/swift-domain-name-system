@@ -9,7 +9,7 @@ let package = Package(
         .iOS(.v26),
         .tvOS(.v26),
         .watchOS(.v26),
-        .visionOS(.v26)
+        .visionOS(.v26),
     ],
     products: [
         .library(
@@ -32,7 +32,7 @@ let package = Package(
         .testTarget(
             name: "Domain Name System Tests",
             dependencies: [
-                "Domain Name System",
+                "Domain Name System"
             ]
         ),
     ],
