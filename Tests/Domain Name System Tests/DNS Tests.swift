@@ -87,7 +87,9 @@ extension Failing: DNS.Resolving {
 
 extension `DNS Resolver Seam Tests`.Unit {
     @Test
-    func `provider order is preserved without family re-ranking`() async throws(RFC_1035.Domain.Error) {
+    func `provider order is preserved without family re-ranking`() async throws(RFC_1035.Domain
+        .Error)
+    {
         let mixed: [IP.Address] = [
             .v6(IPv6.Address(0, 0, 0, 0, 0, 0, 0, 1)),
             .v4(IPv4.Address(rawValue: 0x7F00_0001)),
