@@ -1,14 +1,3 @@
-// ===----------------------------------------------------------------------===//
-//
-// This source file is part of the swift-domain-name-system open source project
-//
-// Copyright (c) 2026 Coen ten Thije Boonkkamp and the swift-domain-name-system project authors
-// Licensed under Apache License v2.0
-//
-// See LICENSE for license information
-//
-// ===----------------------------------------------------------------------===//
-
 import Testing
 
 @testable import Domain_Name_System
@@ -58,13 +47,12 @@ struct `DNS Resolver Seam Tests` {
     @Suite struct Integration {}
 }
 
-/// A deterministic provider answering in a fixed, deliberately mixed order.
 private struct Fixed: Sendable {
     let answers: [IP.Address]
 }
 
 extension Fixed {
-    /// The provider's typed failure.
+
     enum Failure: Swift.Error, Equatable {
         case unreachable
     }
@@ -76,7 +64,6 @@ extension Fixed: DNS.Resolving {
     }
 }
 
-/// A provider that always fails with its typed failure.
 private struct Failing: Sendable {}
 
 extension Failing: DNS.Resolving {
